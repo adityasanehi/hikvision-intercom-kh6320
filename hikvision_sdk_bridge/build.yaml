@@ -1,7 +1,9 @@
 ---
+# Debian-slim (glibc) base — HCNetSDK needs glibc, unlike the Alpine HA base.
+# The namespace-qualified form is required by the Supervisor's build_from regex.
 build_from:
-  amd64: python:3.12-slim-bookworm
-  aarch64: arm64v8/python:3.12-slim-bookworm
+  amd64: docker.io/library/python:3.12-slim-bookworm
+  aarch64: docker.io/library/python:3.12-slim-bookworm
 labels:
   org.opencontainers.image.title: Hikvision SDK Bridge
   org.opencontainers.image.source: https://github.com/TimLuist1/hikvision-intercom
