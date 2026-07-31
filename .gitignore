@@ -1,0 +1,7 @@
+*.apk
+scratchpad/
+apk/
+__pycache__/
+*.pyc
+.DS_Store
+hikvision_sdk_bridge/hcnetsdk/

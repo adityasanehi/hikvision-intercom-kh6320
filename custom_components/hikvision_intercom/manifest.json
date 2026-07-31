@@ -1,0 +1,12 @@
+{
+  "domain": "hikvision_intercom",
+  "name": "Hikvision Intercom (2-Wire)",
+  "codeowners": ["@TimLuist1"],
+  "config_flow": true,
+  "documentation": "https://github.com/TimLuist1/hikvision-intercom",
+  "integration_type": "device",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/TimLuist1/hikvision-intercom/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

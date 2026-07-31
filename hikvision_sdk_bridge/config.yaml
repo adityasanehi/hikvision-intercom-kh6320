@@ -1,0 +1,23 @@
+---
+name: Hikvision SDK Bridge
+version: "0.1.0"
+slug: hikvision_sdk_bridge
+description: >-
+  SDK motor for the Hikvision Intercom integration: ring/motion/door events,
+  door unlock and call control over the HCNetSDK (port 8000).
+url: https://github.com/TimLuist1/hikvision-intercom
+arch:
+  - amd64
+  - aarch64
+init: false
+host_network: true
+ports:
+  8199/tcp: 8199
+ports_description:
+  8199/tcp: Bridge API (WebSocket/HTTP) used by the HA integration
+options:
+  log_level: info
+schema:
+  log_level: list(debug|info|warning|error)
+# No `image:` key -> the Supervisor builds locally from Dockerfile.
+# (A prebuilt image can be published later and referenced here.)

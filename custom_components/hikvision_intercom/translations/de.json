@@ -1,0 +1,40 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Hikvision Türsprechanlage",
+        "description": "Verbinde deine Hikvision 2-Draht-Türstation. Das SDK-Bridge-Add-on muss installiert sein, um Klingel-Ereignisse zu empfangen und die Tür zu steuern.",
+        "data": {
+          "host": "IP-Adresse der Türstation",
+          "name": "Name",
+          "username": "Benutzername",
+          "password": "Passwort",
+          "sdk_port": "SDK-Port",
+          "rtsp_port": "RTSP-Port",
+          "bridge_url": "SDK-Bridge-URL",
+          "door_count": "Anzahl Tür-Relais"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect_device": "Türstation über den SDK-Port nicht erreichbar. Prüfe IP und ob Port 8000 offen ist."
+    },
+    "abort": {
+      "already_configured": "Diese Türstation ist bereits eingerichtet."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "ringing": { "name": "Klingelt" }
+    },
+    "button": {
+      "answer": { "name": "Anruf annehmen" },
+      "reject": { "name": "Anruf ablehnen" },
+      "hangup": { "name": "Auflegen" },
+      "reboot": { "name": "Station neu starten" }
+    },
+    "lock": {
+      "door": { "name": "Tür {door}" }
+    }
+  }
+}

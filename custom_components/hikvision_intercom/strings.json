@@ -1,0 +1,40 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Hikvision Intercom",
+        "description": "Connect your Hikvision 2-wire door station. The SDK bridge add-on must be installed to receive ring events and control the door.",
+        "data": {
+          "host": "Door station IP address",
+          "name": "Name",
+          "username": "Username",
+          "password": "Password",
+          "sdk_port": "SDK port",
+          "rtsp_port": "RTSP port",
+          "bridge_url": "SDK bridge URL",
+          "door_count": "Number of door relays"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect_device": "Could not reach the door station on the SDK port. Check IP and that port 8000 is open."
+    },
+    "abort": {
+      "already_configured": "This door station is already configured."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "ringing": { "name": "Ringing" }
+    },
+    "button": {
+      "answer": { "name": "Answer call" },
+      "reject": { "name": "Reject call" },
+      "hangup": { "name": "Hang up" },
+      "reboot": { "name": "Reboot station" }
+    },
+    "lock": {
+      "door": { "name": "Door {door}" }
+    }
+  }
+}
