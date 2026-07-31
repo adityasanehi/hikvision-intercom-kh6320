@@ -13,7 +13,7 @@ import ctypes
 import json
 import logging
 import re
-from ctypes import POINTER, Structure, c_char, c_char_p, c_void_p, cast
+from ctypes import Structure, c_void_p
 from typing import Any
 
 from hcnetsdk import (
@@ -37,7 +37,7 @@ class NET_DVR_ALARM_ISAPI_INFO(Structure):
     _fields_ = [
         ("dwSize", DWORD),
         ("dwAlarmDataLen", DWORD),
-        ("pAlarmData", c_char_p),
+        ("pAlarmData", c_void_p),
         ("byDataType", BYTE),
         ("byPicturesNumber", BYTE),
         ("byRes", BYTE * 2),
@@ -98,14 +98,15 @@ class IntercomDevice:
 
     # -- event callback (runs in SDK thread) -------------------------------
 
-    def _on_message(self, lCommand, pAlarmer, pAlarmInfo, dwBufLen, pUser) -> None:
+    def _on_message(self, lCommand, pAlarmer, pAlarmInfo, dwBufLen, pUser):
         try:
-            events = self._parse(lCommand, pAlarmInfo, dwBufLen)
+            events = self._parse(int(lCommand), pAlarmInfo or 0, int(dwBufLen))
         except Exception:  # noqa: BLE001
             _LOGGER.exception("Failed to parse alarm 0x%04x", lCommand)
             events = [{"event": "raw", "command": f"0x{lCommand:04x}"}]
         for ev in events:
             self._loop.call_soon_threadsafe(self._queue.put_nowait, ev)
+        return True  # BOOL return expected by the SDK
 
     def _parse(self, lCommand, pAlarmInfo, dwBufLen) -> list[dict[str, Any]]:
         _LOGGER.debug("Alarm 0x%04x (%d bytes)", lCommand, dwBufLen)
@@ -113,30 +114,32 @@ class IntercomDevice:
         if lCommand == COMM_ISAPI_ALARM:
             return self._parse_isapi_alarm(pAlarmInfo)
 
+        # Read the raw buffer once, safely (pointer may be NULL).
+        raw = b""
+        if pAlarmInfo and dwBufLen:
+            raw = ctypes.string_at(pAlarmInfo, min(int(dwBufLen), 256))
+
         if lCommand in (COMM_ALARM_VIDEO_INTERCOM, COMM_UPLOAD_VIDEO_INTERCOM_EVENT):
-            # First byte after dwSize is the alarm/event type on these structs.
-            raw = ctypes.string_at(pAlarmInfo, min(int(dwBufLen), 64))
-            type_byte = raw[4] if len(raw) > 4 else 0
             _LOGGER.info(
-                "Video-intercom cmd 0x%04x type=%d raw=%s",
-                lCommand, type_byte, raw[:32].hex(),
+                "Video-intercom cmd 0x%04x (%d B) raw=%s",
+                lCommand, dwBufLen, raw[:48].hex(),
             )
             return [
                 {
                     "event": "intercom",
                     "command": f"0x{lCommand:04x}",
-                    "type": type_byte,
-                    "raw": raw[:32].hex(),
+                    "raw": raw[:48].hex(),
                 }
             ]
 
         # Unknown: forward raw for live calibration.
-        raw = ctypes.string_at(pAlarmInfo, min(int(dwBufLen), 64)) if dwBufLen else b""
-        _LOGGER.info("Unhandled alarm 0x%04x raw=%s", lCommand, raw[:32].hex())
-        return [{"event": "raw", "command": f"0x{lCommand:04x}", "raw": raw[:32].hex()}]
+        _LOGGER.info("Unhandled alarm 0x%04x raw=%s", lCommand, raw[:48].hex())
+        return [{"event": "raw", "command": f"0x{lCommand:04x}", "raw": raw[:48].hex()}]
 
     def _parse_isapi_alarm(self, pAlarmInfo) -> list[dict[str, Any]]:
-        info = cast(pAlarmInfo, POINTER(NET_DVR_ALARM_ISAPI_INFO)).contents
+        if not pAlarmInfo:
+            return []
+        info = NET_DVR_ALARM_ISAPI_INFO.from_address(pAlarmInfo)
         if not info.pAlarmData or not info.dwAlarmDataLen:
             return []
         data = ctypes.string_at(info.pAlarmData, info.dwAlarmDataLen)

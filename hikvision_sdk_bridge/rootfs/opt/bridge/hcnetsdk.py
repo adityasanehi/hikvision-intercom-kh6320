@@ -57,8 +57,7 @@ class NET_DVR_USER_LOGIN_INFO(Structure):
         ("byLoginMode", BYTE),
         ("byHttps", BYTE),
         ("iProxyID", c_int),
-        ("byVerifyMode", BYTE),
-        ("byRes2", BYTE * 119),
+        ("byRes2", BYTE * 120),
     ]
 
 
@@ -129,9 +128,7 @@ class NET_DVR_XML_CONFIG_INPUT(Structure):
         ("dwInBufferSize", DWORD),
         ("dwRecvTimeOut", DWORD),
         ("byForceEncrpt", BYTE),
-        ("byNumOfMultiPart", BYTE),
-        ("byMultiPartNO", BYTE),
-        ("byRes", BYTE * 125),
+        ("byRes", BYTE * 31),
     ]
 
 
@@ -140,10 +137,10 @@ class NET_DVR_XML_CONFIG_OUTPUT(Structure):
         ("dwSize", DWORD),
         ("lpOutBuffer", c_void_p),
         ("dwOutBufferSize", DWORD),
-        ("dwReturnedXMLLen", DWORD),
+        ("dwReturnedXMLSize", DWORD),
         ("lpStatusBuffer", c_void_p),
         ("dwStatusSize", DWORD),
-        ("byRes", BYTE * 128),
+        ("byRes", BYTE * 31),
     ]
 
 
@@ -189,9 +186,11 @@ class NET_DVR_ALARMER(Structure):
     ]
 
 
-# void CALLBACK(LONG lCommand, NET_DVR_ALARMER*, char* pAlarmInfo, DWORD, void*)
+# BOOL CALLBACK(LONG lCommand, NET_DVR_ALARMER*, void* pAlarmInfo, DWORD, void*)
+# pAlarmInfo is passed as c_void_p (raw address) so we can string_at/cast it
+# ourselves — c_char_p would truncate binary alarm structs at the first NUL.
 MSG_CALLBACK = CFUNCTYPE(
-    None, LONG, POINTER(NET_DVR_ALARMER), c_char_p, DWORD, c_void_p
+    BOOL, LONG, POINTER(NET_DVR_ALARMER), c_void_p, DWORD, c_void_p
 )
 
 # SetSDKInitCfg types
@@ -320,16 +319,14 @@ class HCNetSDK:
 
         cin = NET_DVR_XML_CONFIG_INPUT()
         cin.dwSize = ctypes.sizeof(NET_DVR_XML_CONFIG_INPUT)
-        cin.lpRequestUrl = ctypes.cast(
-            ctypes.create_string_buffer(req_buf), c_void_p
-        )
-        # keep a ref so the buffer isn't GC'd during the call
-        self._req_ref = ctypes.create_string_buffer(req_buf)
-        cin.lpRequestUrl = ctypes.cast(self._req_ref, c_void_p)
+        # keep refs so the buffers aren't GC'd during the SDK call
+        req_ref = ctypes.create_string_buffer(req_buf)
+        cin.lpRequestUrl = ctypes.cast(req_ref, c_void_p)
         cin.dwRequestUrlLen = len(req_buf)
+        in_ref = None
         if in_buf:
-            self._in_ref = ctypes.create_string_buffer(in_buf)
-            cin.lpInBuffer = ctypes.cast(self._in_ref, c_void_p)
+            in_ref = ctypes.create_string_buffer(in_buf)
+            cin.lpInBuffer = ctypes.cast(in_ref, c_void_p)
             cin.dwInBufferSize = len(in_buf)
         cin.dwRecvTimeOut = timeout
 
@@ -347,7 +344,7 @@ class HCNetSDK:
                 user_id, ctypes.byref(cin), ctypes.byref(cout)
             )
         )
-        out_xml = out_buf.raw[: cout.dwReturnedXMLLen].decode(errors="replace")
+        out_xml = out_buf.raw[: cout.dwReturnedXMLSize].decode(errors="replace")
         status = status_buf.value.decode(errors="replace")
         if not ok:
             _LOGGER.debug("ISAPI %s -> SDK err %s status=%s",
