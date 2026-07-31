@@ -1,5 +1,7 @@
-ARG BUILD_FROM=python:3.12-slim-bookworm
-FROM ${BUILD_FROM}
+# HCNetSDK needs glibc. The Supervisor's default base is Alpine/musl, so we pin
+# a Debian-slim + Python base explicitly and intentionally ignore BUILD_FROM.
+ARG BUILD_FROM
+FROM python:3.12-slim-bookworm
 
 # HA passes the target arch; used to pick the right HCNetSDK build.
 ARG BUILD_ARCH=amd64
