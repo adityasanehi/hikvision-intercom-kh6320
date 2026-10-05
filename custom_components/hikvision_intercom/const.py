@@ -24,7 +24,7 @@ DEFAULT_RTSP_PORT: Final = 554
 DEFAULT_USERNAME: Final = "admin"
 DEFAULT_BRIDGE_URL: Final = "http://homeassistant.local:8199"
 DEFAULT_DOOR_COUNT: Final = 1
-DEFAULT_NAME: Final = "Türklingel"
+DEFAULT_NAME: Final = "Hikvision Intercom"
 DEFAULT_UNLOCK_STRATEGY: Final = "auto"
 DEFAULT_DOOR_CHANNEL: Final = 2
 

@@ -66,7 +66,7 @@ cloud, no MQTT broker required.
 1. HACS → **Custom repositories** → add the same URL, category *Integration*.
 2. Install **Hikvision Intercom**, restart HA.
 3. **Settings → Devices → Add Integration → Hikvision Intercom** and enter:
-   - Door station IP (e.g. `192.168.0.38`), username, password
+   - Door station IP (e.g. `192.168.1.100`), username, password
    - SDK port `8000`, RTSP port `554`
    - Bridge URL (default `http://homeassistant.local:8199`)
    - Number of door relays
@@ -89,7 +89,7 @@ automation:
   - alias: Doorbell popup
     trigger:
       - trigger: state
-        entity_id: binary_sensor.turklingel_ringing
+        entity_id: binary_sensor.hikvision_intercom_ringing
         to: "on"
     action:
       - action: media_player.turn_on
