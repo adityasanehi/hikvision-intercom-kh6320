@@ -1,5 +1,8 @@
 # Hikvision Intercom for Home Assistant
 
+[![Add to HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?repository=adityasanehi%2Fhikvision-intercom-kh6320&category=integration)
+[![Add add-on repository](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fadityasanehi%2Fhikvision-intercom-kh6320)
+
 > **Attribution / base:** This project is **derived from
 > [TimLuist1/hikvision-intercom](https://github.com/TimLuist1/hikvision-intercom)**
 > (used as the base and upstream). This repo adds support for Hikvision
