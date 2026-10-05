@@ -50,7 +50,7 @@ cloud, no MQTT broker required.
 
 ### 1. The SDK Bridge add-on
 1. Home Assistant → **Settings → Add-ons → Add-on Store → ⋮ → Repositories**
-   and add `https://github.com/TimLuist1/hikvision-intercom`.
+   and add `https://github.com/adityasanehi/hikvision-intercom-kh6320`.
 2. Provide the Hikvision **Device Network SDK (Linux)** libraries (they are not
    redistributable, so you fetch them once):
    ```bash
@@ -64,7 +64,7 @@ cloud, no MQTT broker required.
 
 ### 2. The integration (HACS)
 1. HACS → **Custom repositories** → add the same URL, category *Integration*.
-2. Install **Hikvision Intercom (2-Wire)**, restart HA.
+2. Install **Hikvision Intercom**, restart HA.
 3. **Settings → Devices → Add Integration → Hikvision Intercom** and enter:
    - Door station IP (e.g. `192.168.0.38`), username, password
    - SDK port `8000`, RTSP port `554`

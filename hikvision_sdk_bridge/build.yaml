@@ -6,4 +6,4 @@ build_from:
   aarch64: docker.io/library/python:3.12-slim-bookworm
 labels:
   org.opencontainers.image.title: Hikvision SDK Bridge
-  org.opencontainers.image.source: https://github.com/TimLuist1/hikvision-intercom
+  org.opencontainers.image.source: https://github.com/adityasanehi/hikvision-intercom-kh6320

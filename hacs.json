@@ -1,5 +1,5 @@
 {
-  "name": "Hikvision Intercom (2-Wire)",
+  "name": "Hikvision Intercom",
   "content_in_root": false,
   "render_readme": true,
   "homeassistant": "2024.4.0"

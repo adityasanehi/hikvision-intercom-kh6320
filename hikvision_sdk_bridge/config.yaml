@@ -5,7 +5,7 @@ slug: hikvision_sdk_bridge
 description: >-
   SDK motor for the Hikvision Intercom integration: ring/motion/door events,
   door unlock and call control over the HCNetSDK (port 8000).
-url: https://github.com/TimLuist1/hikvision-intercom
+url: https://github.com/adityasanehi/hikvision-intercom-kh6320
 arch:
   - amd64
   - aarch64

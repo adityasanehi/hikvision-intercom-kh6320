@@ -1,12 +1,12 @@
 {
   "domain": "hikvision_intercom",
-  "name": "Hikvision Intercom (2-Wire)",
-  "codeowners": ["@TimLuist1"],
+  "name": "Hikvision Intercom",
+  "codeowners": ["@adityasanehi"],
   "config_flow": true,
-  "documentation": "https://github.com/TimLuist1/hikvision-intercom",
+  "documentation": "https://github.com/adityasanehi/hikvision-intercom-kh6320",
   "integration_type": "device",
   "iot_class": "local_push",
-  "issue_tracker": "https://github.com/TimLuist1/hikvision-intercom/issues",
+  "issue_tracker": "https://github.com/adityasanehi/hikvision-intercom-kh6320/issues",
   "requirements": [],
   "version": "0.1.0"
 }
