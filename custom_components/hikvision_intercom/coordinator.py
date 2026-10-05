@@ -86,7 +86,9 @@ class IntercomCoordinator:
             try:
                 _LOGGER.debug("Connecting to bridge %s", self.ws_url)
                 async with self._session.ws_connect(
-                    self.ws_url, heartbeat=20, timeout=aiohttp.ClientTimeout(total=10)
+                    self.ws_url,
+                    heartbeat=20,
+                    timeout=aiohttp.ClientTimeout(connect=10),
                 ) as ws:
                     self._ws = ws
                     self._set_connected(True)
@@ -181,16 +183,24 @@ class IntercomCoordinator:
     async def async_command(
         self, command: str, timeout: float = 10.0, **params: Any
     ) -> dict[str, Any]:
-        """Send a command to the bridge and await its result."""
-        self._req_id += 1
-        rid = self._req_id
-        fut: asyncio.Future = self.hass.loop.create_future()
-        self._pending[rid] = fut
-        try:
-            await self._send_raw(
-                {"type": "command", "id": rid, "command": command, **params}
-            )
-            return await asyncio.wait_for(fut, timeout)
-        except (ConnectionError, asyncio.TimeoutError) as err:
-            self._pending.pop(rid, None)
-            raise err
+        """Send a command to the bridge and await its result (retry once on drop)."""
+        payload = {"type": "command", "command": command, **params}
+        last_err: Exception | None = None
+        for attempt in range(2):
+            self._req_id += 1
+            rid = self._req_id
+            fut: asyncio.Future = self.hass.loop.create_future()
+            self._pending[rid] = fut
+            try:
+                await self._send_raw({**payload, "id": rid})
+                return await asyncio.wait_for(fut, timeout)
+            except (ConnectionError, asyncio.TimeoutError) as err:
+                self._pending.pop(rid, None)
+                last_err = err
+                # The socket may have dropped just as we sent the command; wait
+                # for the background loop to reconnect and retry once.
+                if attempt == 0 and isinstance(err, ConnectionError):
+                    await asyncio.sleep(RECONNECT_MIN)
+                    continue
+                raise err
+        raise last_err  # pragma: no cover
