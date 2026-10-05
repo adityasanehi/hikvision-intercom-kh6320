@@ -13,20 +13,27 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     CONF_BRIDGE_URL,
+    CONF_DOOR_CHANNEL,
     CONF_DOOR_COUNT,
     CONF_HOST,
     CONF_NAME,
     CONF_PASSWORD,
     CONF_RTSP_PORT,
     CONF_SDK_PORT,
+    CONF_UNLOCK_STRATEGY,
     CONF_USERNAME,
     DEFAULT_BRIDGE_URL,
+    DEFAULT_DOOR_CHANNEL,
     DEFAULT_DOOR_COUNT,
     DEFAULT_NAME,
     DEFAULT_RTSP_PORT,
     DEFAULT_SDK_PORT,
+    DEFAULT_UNLOCK_STRATEGY,
     DEFAULT_USERNAME,
     DOMAIN,
+    UNLOCK_STRATEGY_AUTO,
+    UNLOCK_STRATEGY_GENERIC_ISAPI,
+    UNLOCK_STRATEGY_KH6320_INDOOR,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -98,6 +105,20 @@ class HikvisionIntercomConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Required(
                     CONF_DOOR_COUNT, default=DEFAULT_DOOR_COUNT
                 ): vol.All(vol.Coerce(int), vol.Range(min=1, max=4)),
+                vol.Optional(
+                    CONF_UNLOCK_STRATEGY, default=DEFAULT_UNLOCK_STRATEGY
+                ): vol.In(
+                    {
+                        UNLOCK_STRATEGY_AUTO: "Auto (detect from device type)",
+                        UNLOCK_STRATEGY_GENERIC_ISAPI: "Generic ISAPI door relay",
+                        UNLOCK_STRATEGY_KH6320_INDOOR: (
+                            "KH6320 indoor (unlock doorphone lock directly)"
+                        ),
+                    }
+                ),
+                vol.Optional(
+                    CONF_DOOR_CHANNEL, default=DEFAULT_DOOR_CHANNEL
+                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=50)),
             }
         )
         return self.async_show_form(

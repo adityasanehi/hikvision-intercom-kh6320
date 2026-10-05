@@ -99,6 +99,12 @@ class IntercomCoordinator:
                             "sdk_port": self.entry.data.get("sdk_port"),
                             "username": self.entry.data.get("username"),
                             "password": self.entry.data.get("password"),
+                            "unlock_strategy": self.entry.data.get(
+                                "unlock_strategy", "auto"
+                            ),
+                            "door_channel": self.entry.data.get(
+                                "door_channel", 2
+                            ),
                         }
                     )
                     await self.async_command(CMD_STATUS)

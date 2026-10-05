@@ -12,7 +12,9 @@
           "sdk_port": "SDK port",
           "rtsp_port": "RTSP port",
           "bridge_url": "SDK bridge URL",
-          "door_count": "Number of door relays"
+          "door_count": "Number of door relays",
+          "unlock_strategy": "Unlock strategy",
+          "door_channel": "Door lock channel (indoor stations)"
         }
       }
     },

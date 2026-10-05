@@ -15,6 +15,8 @@ CONF_PASSWORD: Final = "password"
 CONF_BRIDGE_URL: Final = "bridge_url"
 CONF_DOOR_COUNT: Final = "door_count"
 CONF_NAME: Final = "name"
+CONF_UNLOCK_STRATEGY: Final = "unlock_strategy"
+CONF_DOOR_CHANNEL: Final = "door_channel"
 
 # Defaults (from reverse engineering of the DS-KIS/2-wire kit)
 DEFAULT_SDK_PORT: Final = 8000
@@ -23,6 +25,13 @@ DEFAULT_USERNAME: Final = "admin"
 DEFAULT_BRIDGE_URL: Final = "http://homeassistant.local:8199"
 DEFAULT_DOOR_COUNT: Final = 1
 DEFAULT_NAME: Final = "Türklingel"
+DEFAULT_UNLOCK_STRATEGY: Final = "auto"
+DEFAULT_DOOR_CHANNEL: Final = 2
+
+# Unlock strategies (handed to the SDK bridge)
+UNLOCK_STRATEGY_AUTO: Final = "auto"
+UNLOCK_STRATEGY_GENERIC_ISAPI: Final = "generic_isapi"
+UNLOCK_STRATEGY_KH6320_INDOOR: Final = "kh6320_indoor"
 
 # Dispatcher signal templates
 SIGNAL_EVENT: Final = "hikvision_intercom_event_{entry_id}"

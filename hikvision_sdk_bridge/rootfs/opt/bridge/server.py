@@ -130,6 +130,8 @@ class BridgeServer:
             except Exception as err:  # noqa: BLE001
                 _LOGGER.error("Login to %s failed: %s", key[0], err)
                 raise
+            device.unlock_strategy = str(data.get("unlock_strategy") or "auto")
+            device.door_channel = int(data.get("door_channel") or 2)
             self._device = device
             self._bind_key = key
 

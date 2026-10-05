@@ -32,6 +32,14 @@ COMM_ALARM_VIDEO_INTERCOM = 0x1132
 COMM_UPLOAD_VIDEO_INTERCOM_EVENT = 0x1133
 COMM_ISAPI_ALARM = 0x6009
 
+# Device type codes (NET_DVR_DEVICEINFO_V30.wDevType)
+DEV_TYPE_INDOOR = 602
+
+# Unlock strategies
+UNLOCK_STRATEGY_AUTO = "auto"
+UNLOCK_STRATEGY_GENERIC_ISAPI = "generic_isapi"
+UNLOCK_STRATEGY_KH6320_INDOOR = "kh6320_indoor"
+
 
 class NET_DVR_ALARM_ISAPI_INFO(Structure):
     _fields_ = [
@@ -63,13 +71,20 @@ class IntercomDevice:
         self._cb = MSG_CALLBACK(self._on_message)  # keep ref alive
         self.device_info: dict[str, Any] = {}
         self.host = ""
+        self.wdev_type = 0
+        self.unlock_strategy = UNLOCK_STRATEGY_AUTO
+        self.door_channel = 2  # channelNo of the indoor doorphone lock relay
 
     # -- connection --------------------------------------------------------
 
     def connect(self, host: str, port: int, user: str, password: str) -> None:
         self.host = host
         self.user_id, dev = self._sdk.login(host, port, user, password)
-        _LOGGER.info("Logged in to %s as user id %s", host, self.user_id)
+        self.wdev_type = int(dev.struDeviceV30.wDevType)
+        _LOGGER.info(
+            "Logged in to %s as user id %s (device type %s)",
+            host, self.user_id, self.wdev_type,
+        )
         self._read_device_info()
         self._sdk.set_message_callback(self._cb)
         self._alarm_handle = self._sdk.setup_alarm_chan(self.user_id)
@@ -191,11 +206,50 @@ class IntercomDevice:
         return ok, xml or status
 
     def unlock(self, door: int = 1) -> tuple[bool, str]:
+        strategy = self._effective_strategy()
+        if strategy == UNLOCK_STRATEGY_KH6320_INDOOR:
+            return self.unlock_indoor(door)
+        return self._unlock_isapi(door)
+
+    def _effective_strategy(self) -> str:
+        strategy = self.unlock_strategy or UNLOCK_STRATEGY_AUTO
+        if strategy == UNLOCK_STRATEGY_AUTO:
+            return (
+                UNLOCK_STRATEGY_KH6320_INDOOR
+                if self.wdev_type == DEV_TYPE_INDOOR
+                else UNLOCK_STRATEGY_GENERIC_ISAPI
+            )
+        return strategy
+
+    def _unlock_isapi(self, door: int) -> tuple[bool, str]:
         body = (
             '<RemoteControlDoor xmlns="http://www.hikvision.com/ver20/XMLSchema">'
             "<cmd>open</cmd></RemoteControlDoor>"
         )
         return self._isapi("PUT", f"/ISAPI/AccessControl/RemoteControl/door/{door}", body)
+
+    def unlock_indoor(self, door: int = 1) -> tuple[bool, str]:
+        """Unlock the door lock wired to an analog doorphone (DS-KH6320-WTDE1).
+
+        The 4-wire hybrid indoor station does not implement the native
+        ``NET_DVR_CONTROL_GATEWAY_LOCK`` (16009) command nor the plain
+        ``<cmd>open</cmd>`` ISAPI body — both return an error on this model. Its
+        ``RemoteControlDoor`` endpoint requires ``channelNo`` and ``controlType``;
+        the analog doorphone's lock relay sits on ``channelNo`` (2 by default,
+        configurable via ``door_channel``), verified live against a DS-KH6320-WTDE1.
+        """
+        channel = getattr(self, "door_channel", 2) or 2
+        body = (
+            '<RemoteControlDoor xmlns="http://www.isapi.org/ver20/XMLSchema">'
+            f"<doorNo>{door}</doorNo>"
+            "<cmd>open</cmd>"
+            f"<channelNo>{channel}</channelNo>"
+            "<controlType>monitor</controlType>"
+            "</RemoteControlDoor>"
+        )
+        return self._isapi(
+            "PUT", f"/ISAPI/AccessControl/RemoteControl/door/{door}", body
+        )
 
     def call_signal(self, cmd_type: str) -> tuple[bool, str]:
         body = json.dumps({"CallSignal": {"cmdType": cmd_type}})

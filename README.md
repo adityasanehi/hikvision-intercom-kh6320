@@ -1,7 +1,16 @@
-# Hikvision Intercom (2-Wire) for Home Assistant
+# Hikvision Intercom for Home Assistant
 
-A native Home Assistant integration for **Hikvision 2-wire video door stations**
-(DS-KIS / DS-KV / DS-KH kits) that expose **no HTTP/ISAPI web server** — where
+> **Attribution / base:** This project is **derived from
+> [TimLuist1/hikvision-intercom](https://github.com/TimLuist1/hikvision-intercom)**
+> (used as the base and upstream). This repo adds support for Hikvision
+> **4-wire hybrid indoor stations** — specifically the **DS-KH6320-WTDE1** with an
+> analog doorphone (DS-KB2421T-IM) — whose door unlock uses a different ISAPI body
+> than the 2-wire door stations the base targets. See
+> [docs/KH6320-WTDE1.md](docs/KH6320-WTDE1.md).
+
+A native Home Assistant integration for **Hikvision video intercom / door
+stations** (DS-KIS / DS-KV / DS-KH kits, including 2-wire door stations and
+4-wire hybrid indoor stations) that expose **no HTTP/ISAPI web server** — where
 control is only reachable through Hikvision's binary SDK on port `8000`.
 
 It gives you, on a wall tablet or anywhere in HA:
@@ -95,9 +104,13 @@ APK. Key findings that shaped the design:
 
 - Open ports: `554` RTSP · `5060/udp` SIP(YATE) · `8000` SDK · `8102` · `8200/9010/9020` private · `6666`. **No HTTP/ISAPI (80/443 closed).**
 - Video: RTSP `Streaming/Channels/101` = H.264 1080p + G.711µ.
-- Unlock: `PUT /ISAPI/AccessControl/RemoteControl/door/<id>` with
-  `<RemoteControlDoor><cmd>open</cmd></RemoteControlDoor>` — tunnelled via
+- Unlock (2-wire door stations): `PUT /ISAPI/AccessControl/RemoteControl/door/<id>`
+  with `<RemoteControlDoor><cmd>open</cmd></RemoteControlDoor>` — tunnelled via
   `NET_DVR_STDXMLConfig`.
+- Unlock (4-wire hybrid indoor stations, e.g. DS-KH6320-WTDE1): the same endpoint
+  but with `<RemoteControlDoor><doorNo>1</doorNo><cmd>open</cmd><channelNo>2</channelNo><controlType>monitor</controlType></RemoteControlDoor>`
+  — the `channelNo` points at the analog doorphone's lock relay. The integration
+  auto-detects the indoor station type (`wDevType = 602`) and picks this path.
 - Call control: `/ISAPI/VideoIntercom/callSignal` + `callerInfo`.
 - Ring/motion/door events: `NET_DVR_SetupAlarmChan` + message callback.
 - The app uses `HCNetSDK` via JNA — confirming the SDK path.
