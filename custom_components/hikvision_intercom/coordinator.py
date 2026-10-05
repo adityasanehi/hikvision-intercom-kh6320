@@ -20,7 +20,6 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import (
-    CMD_STATUS,
     DOMAIN,
     SIGNAL_CONNECTION,
     SIGNAL_EVENT,
@@ -109,7 +108,8 @@ class IntercomCoordinator:
                             ),
                         }
                     )
-                    await self.async_command(CMD_STATUS)
+                    # Bridge replies to bind with a status message; awaiting a
+                    # command result here would deadlock (nothing reads the WS yet).
                     async for msg in ws:
                         if msg.type == aiohttp.WSMsgType.TEXT:
                             self._handle_message(msg.json())
