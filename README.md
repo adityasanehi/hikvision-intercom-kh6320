@@ -77,11 +77,24 @@ cloud, no MQTT broker required.
 |---|---|---|
 | `camera.*_live` | camera | RTSP main stream (1080p) |
 | `camera.*_live_sd` | camera | RTSP sub stream (disabled by default) |
-| `binary_sensor.*_ringing` | binary_sensor | on while the doorbell rings |
-| `binary_sensor.*_motion` / `_tamper` / `_door` | binary_sensor | station events |
+| `binary_sensor.*_ringing` | binary_sensor | on while the SDK reports an incoming call session |
+| `binary_sensor.*_motion` / `_tamper` | binary_sensor | station events |
+| `binary_sensor.*_door` | binary_sensor | physical contact only; unknown until reported |
 | `lock.*_door_1` | lock | door opener relay (momentary) |
 | `button.*_answer` / `_reject` / `_hangup` | button | call control |
 | `button.*_reboot` | button | reboot station (disabled by default) |
+
+Door position is never inferred from an unlock pulse. Contact reporting has not
+yet been verified through the DS-KH6320-WTDE1 indoor station, so its door sensor
+stays unknown. The lock entity represents the momentary opener relay.
+
+Indoor stations (SDK device type 602) use SDK-tunnelled
+`/ISAPI/VideoIntercom/callStatus?format=json` polling at one-second intervals.
+This detected a live analog-doorphone ring on a DS-KH6320-WTDE1 / V2.2.92 even
+though its alarm channel produced no callbacks. On this firmware the SDK kept
+reporting `ring` after the indoor unit was answered, and in one test after it
+had stopped ringing; it is not a measure of physical ringing duration. Calls shorter than the polling
+interval may be missed. Other device types retain alarm-based detection.
 
 ### Example: ring → wake the hallway tablet
 ```yaml

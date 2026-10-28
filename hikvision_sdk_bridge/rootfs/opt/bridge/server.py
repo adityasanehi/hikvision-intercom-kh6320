@@ -19,7 +19,7 @@ from typing import Any
 from aiohttp import WSMsgType, web
 
 from hcnetsdk import HCNetSDK
-from intercom import IntercomDevice
+from intercom import DEV_TYPE_INDOOR, IntercomDevice
 
 _LOGGER = logging.getLogger("bridge.server")
 
@@ -56,6 +56,7 @@ class BridgeServer:
         _LOGGER.info("Bridge listening on :%s", self._port)
 
         asyncio.create_task(self._broadcaster())
+        asyncio.create_task(self._poll_call_status())
         # run forever
         await asyncio.Event().wait()
 
@@ -140,7 +141,7 @@ class BridgeServer:
         return {
             "type": "status",
             "device": dev.device_info if dev else {},
-            "call_status": "idle",
+            "call_status": dev.call_state if dev else "unknown",
         }
 
     # -- commands ----------------------------------------------------------
@@ -175,9 +176,28 @@ class BridgeServer:
 
     # -- event fan-out -----------------------------------------------------
 
+    async def _poll_call_status(self) -> None:
+        """Indoor stations can ring without sending any alarm callback."""
+        while True:
+            async with self._bind_lock:
+                dev = self._device
+                if dev is not None and dev.wdev_type == DEV_TYPE_INDOOR:
+                    try:
+                        status = await self._loop.run_in_executor(None, dev.call_status)
+                    except Exception:  # noqa: BLE001
+                        _LOGGER.debug("Failed to read call status", exc_info=True)
+                        status = "unknown"
+                    if status != dev.call_state:
+                        _LOGGER.info("Call status: %s -> %s", dev.call_state, status)
+                        dev.call_state = status
+                        self._queue.put_nowait({"event": "call_status", "status": status})
+            await asyncio.sleep(1)
+
     async def _broadcaster(self) -> None:
         while True:
             ev = await self._queue.get()
+            if ev.get("event") == "call_status" and self._device is not None:
+                self._device.call_state = ev["status"]
             message = {"type": "event", **ev}
             for ws in list(self._clients):
                 await self._safe_send(ws, message)

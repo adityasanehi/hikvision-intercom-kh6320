@@ -1,4 +1,4 @@
-"""Binary sensors: ringing, motion, tamper, door state."""
+"""Binary sensors: ringing, motion, tamper, and door contact."""
 
 from __future__ import annotations
 
@@ -13,9 +13,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import HikvisionConfigEntry
 from .const import (
-    CALL_ENDED,
-    CALL_IDLE,
-    CALL_ONCALL,
     CALL_RINGING,
     CONF_HOST,
     RING_TIMEOUT,
@@ -54,6 +51,12 @@ class _EventBinarySensor(HikvisionIntercomEntity, BinarySensorEntity):
         self._attr_is_on = False
         self._cancel_off = None
 
+    async def async_will_remove_from_hass(self) -> None:
+        if self._cancel_off:
+            self._cancel_off()
+            self._cancel_off = None
+        await super().async_will_remove_from_hass()
+
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
         self.async_on_remove(
@@ -89,20 +92,31 @@ class RingingBinarySensor(_EventBinarySensor):
     _attr_translation_key = "ringing"
     _attr_icon = "mdi:bell-ring"
 
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self._on_event(
+            {"event": "call_status", "status": self.coordinator.data["call_status"]}
+        )
+
     @callback
     def _on_event(self, data: dict) -> None:
         event = data.get("event")
         if event == "ring":
             self._attr_is_on = True
             self._pulse_off(RING_TIMEOUT)
-        elif event == "call_status":
-            status = data.get("status")
-            self._attr_is_on = status == CALL_RINGING
-            if status in (CALL_ENDED, CALL_IDLE, CALL_ONCALL) and self._cancel_off:
+        elif event in ("call_status", "status"):
+            status = data.get("status" if event == "call_status" else "call_status")
+            if status is None:
+                return
+            self._attr_is_on = None if status == "unknown" else status == CALL_RINGING
+            if self._cancel_off:
                 self._cancel_off()
                 self._cancel_off = None
-        elif event in ("dismiss",):
+        elif event == "dismiss":
             self._attr_is_on = False
+            if self._cancel_off:
+                self._cancel_off()
+                self._cancel_off = None
         else:
             return
         self.async_write_ha_state()
@@ -139,20 +153,18 @@ class TamperBinarySensor(_EventBinarySensor):
 
 
 class DoorBinarySensor(_EventBinarySensor):
-    """Door open/closed contact reported by the station."""
+    """Physical door contact; unknown until the station reports a reading."""
 
     _key = "door"
     _attr_device_class = BinarySensorDeviceClass.DOOR
 
+    def __init__(self, coordinator: IntercomCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_is_on = None
+
     @callback
     def _on_event(self, data: dict) -> None:
-        event = data.get("event")
-        if event == "door":
-            self._attr_is_on = bool(data.get("open"))
-        elif event == "unlock":
-            # Unlock pulse: show open briefly.
-            self._attr_is_on = True
-            self._pulse_off(8)
-        else:
+        if data.get("event") != "door" or not isinstance(data.get("open"), bool):
             return
+        self._attr_is_on = data["open"]
         self.async_write_ha_state()

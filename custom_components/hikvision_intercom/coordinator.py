@@ -47,7 +47,7 @@ class IntercomCoordinator:
         self.connected = False
         # Last known state, refreshed from bridge "status" and live events.
         self.data: dict[str, Any] = {
-            "call_status": "idle",
+            "call_status": "unknown",
             "device": {},
         }
 

@@ -28,8 +28,8 @@ _LOGGER = logging.getLogger("bridge.intercom")
 
 # HCNetSDK alarm command ids we care about
 COMM_ALARM_V30 = 0x4000
-COMM_ALARM_VIDEO_INTERCOM = 0x1132
-COMM_UPLOAD_VIDEO_INTERCOM_EVENT = 0x1133
+COMM_UPLOAD_VIDEO_INTERCOM_EVENT = 0x1132
+COMM_ALARM_VIDEO_INTERCOM = 0x1133
 COMM_ISAPI_ALARM = 0x6009
 
 # Device type codes (NET_DVR_DEVICEINFO_V30.wDevType)
@@ -43,9 +43,8 @@ UNLOCK_STRATEGY_KH6320_INDOOR = "kh6320_indoor"
 
 class NET_DVR_ALARM_ISAPI_INFO(Structure):
     _fields_ = [
-        ("dwSize", DWORD),
-        ("dwAlarmDataLen", DWORD),
         ("pAlarmData", c_void_p),
+        ("dwAlarmDataLen", DWORD),
         ("byDataType", BYTE),
         ("byPicturesNumber", BYTE),
         ("byRes", BYTE * 2),
@@ -70,6 +69,7 @@ class IntercomDevice:
         self._alarm_handle: int | None = None
         self._cb = MSG_CALLBACK(self._on_message)  # keep ref alive
         self.device_info: dict[str, Any] = {}
+        self.call_state = "unknown"
         self.host = ""
         self.wdev_type = 0
         self.unlock_strategy = UNLOCK_STRATEGY_AUTO
@@ -86,7 +86,10 @@ class IntercomDevice:
             host, self.user_id, self.wdev_type,
         )
         self._read_device_info()
-        self._sdk.set_message_callback(self._cb)
+        if not self._sdk.set_message_callback(self._cb):
+            self._sdk.logout(self.user_id)
+            self.user_id = None
+            raise RuntimeError("Failed to register alarm callback")
         self._alarm_handle = self._sdk.setup_alarm_chan(self.user_id)
         _LOGGER.info("Alarm channel armed (handle %s)", self._alarm_handle)
 
@@ -127,7 +130,7 @@ class IntercomDevice:
         _LOGGER.debug("Alarm 0x%04x (%d bytes)", lCommand, dwBufLen)
 
         if lCommand == COMM_ISAPI_ALARM:
-            return self._parse_isapi_alarm(pAlarmInfo)
+            return self._parse_isapi_alarm(pAlarmInfo, dwBufLen)
 
         # Read the raw buffer once, safely (pointer may be NULL).
         raw = b""
@@ -151,11 +154,11 @@ class IntercomDevice:
         _LOGGER.info("Unhandled alarm 0x%04x raw=%s", lCommand, raw[:48].hex())
         return [{"event": "raw", "command": f"0x{lCommand:04x}", "raw": raw[:48].hex()}]
 
-    def _parse_isapi_alarm(self, pAlarmInfo) -> list[dict[str, Any]]:
-        if not pAlarmInfo:
+    def _parse_isapi_alarm(self, pAlarmInfo, dwBufLen) -> list[dict[str, Any]]:
+        if not pAlarmInfo or dwBufLen < ctypes.sizeof(NET_DVR_ALARM_ISAPI_INFO):
             return []
         info = NET_DVR_ALARM_ISAPI_INFO.from_address(pAlarmInfo)
-        if not info.pAlarmData or not info.dwAlarmDataLen:
+        if not info.pAlarmData or not 0 < info.dwAlarmDataLen <= 1 << 20:
             return []
         data = ctypes.string_at(info.pAlarmData, info.dwAlarmDataLen)
         text = data.decode(errors="replace")
@@ -268,11 +271,19 @@ class IntercomDevice:
         return self._isapi("PUT", "/ISAPI/System/reboot")
 
     def call_status(self) -> str:
-        ok, xml = self._isapi("GET", "/ISAPI/VideoIntercom/callSignal?format=json")
+        ok, text = self._isapi("GET", "/ISAPI/VideoIntercom/callStatus?format=json")
         if not ok:
             return "unknown"
-        m = re.search(r'"cmdType"\s*:\s*"([^"]+)"', xml)
-        return m.group(1) if m else "idle"
+        try:
+            payload = json.loads(text)
+            status = payload["CallStatus"]["status"]
+        except (ValueError, KeyError, TypeError):
+            return "unknown"
+        if not isinstance(status, str):
+            return "unknown"
+        return {"idle": "idle", "ring": "ringing", "onCall": "onCall"}.get(
+            status, "unknown"
+        )
 
 
 def _xml_tag(xml: str, tag: str) -> str | None:

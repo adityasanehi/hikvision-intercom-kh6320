@@ -46,7 +46,7 @@ EVENT_CALL_STATUS: Final = "call_status"  # idle/ringing/onCall/ended
 EVENT_UNLOCK: Final = "unlock"       # door unlocked (by anyone)
 EVENT_DISMISS: Final = "dismiss"     # call dismissed/hung up
 
-# Call status values (from /ISAPI/VideoIntercom/callSignal)
+# Normalized call status values (from /ISAPI/VideoIntercom/callStatus)
 CALL_IDLE: Final = "idle"
 CALL_RINGING: Final = "ringing"
 CALL_ONCALL: Final = "onCall"
