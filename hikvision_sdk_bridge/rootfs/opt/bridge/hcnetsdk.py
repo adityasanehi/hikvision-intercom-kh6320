@@ -237,7 +237,7 @@ class HCNetSDK:
             POINTER(NET_DVR_USER_LOGIN_INFO),
             POINTER(NET_DVR_DEVICEINFO_V40),
         ]
-        lib.NET_DVR_Login_V40.restype = LONG
+        lib.NET_DVR_Login_V40.restype = c_int
         lib.NET_DVR_Logout.argtypes = [LONG]
         lib.NET_DVR_Logout.restype = BOOL
 
@@ -252,7 +252,7 @@ class HCNetSDK:
             LONG,
             POINTER(NET_DVR_SETUPALARM_PARAM),
         ]
-        lib.NET_DVR_SetupAlarmChan_V41.restype = LONG
+        lib.NET_DVR_SetupAlarmChan_V41.restype = c_int
         lib.NET_DVR_CloseAlarmChan_V30.argtypes = [LONG]
         lib.NET_DVR_CloseAlarmChan_V30.restype = BOOL
         lib.NET_DVR_SetDVRMessageCallBack_V50.argtypes = [

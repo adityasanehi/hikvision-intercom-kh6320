@@ -90,7 +90,12 @@ class IntercomDevice:
             self._sdk.logout(self.user_id)
             self.user_id = None
             raise RuntimeError("Failed to register alarm callback")
-        self._alarm_handle = self._sdk.setup_alarm_chan(self.user_id)
+        try:
+            self._alarm_handle = self._sdk.setup_alarm_chan(self.user_id)
+        except Exception:
+            self._sdk.logout(self.user_id)
+            self.user_id = None
+            raise
         _LOGGER.info("Alarm channel armed (handle %s)", self._alarm_handle)
 
     def disconnect(self) -> None:

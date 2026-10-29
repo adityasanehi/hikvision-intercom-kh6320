@@ -60,6 +60,16 @@ class IntercomTests(unittest.TestCase):
         self.sdk.logout.assert_called_once_with(1)
         self.sdk.setup_alarm_chan.assert_not_called()
 
+    def test_failed_alarm_setup_logs_out(self):
+        self.sdk.login.return_value = (1, NET_DVR_DEVICEINFO_V40())
+        self.device._read_device_info = Mock()
+        self.sdk.set_message_callback.return_value = True
+        self.sdk.setup_alarm_chan.side_effect = RuntimeError('alarm setup failed')
+        with self.assertRaisesRegex(RuntimeError, 'alarm setup failed'):
+            self.device.connect('192.0.2.1', 8000, 'user', 'password')
+        self.sdk.logout.assert_called_once_with(1)
+        self.assertIsNone(self.device.user_id)
+
 
 if __name__ == '__main__':
     unittest.main()
